@@ -3,11 +3,20 @@ import React, { useState, useEffect } from "react";
 export default function App() {
   const [text, setText] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voices, setVoices] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState(null);
+  const [rate, setRate] = useState(1);
+  const [pitch, setPitch] = useState(1);
 
   useEffect(() => {
     const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      console.log("Available voices:", voices);
+      const availableVoices = window.speechSynthesis.getVoices();
+      setVoices(availableVoices);
+      
+      // Auto-select first available voice
+      if (availableVoices.length > 0 && !selectedVoice) {
+        setSelectedVoice(availableVoices[0]);
+      }
     };
     
     loadVoices();
@@ -15,7 +24,7 @@ export default function App() {
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
-  }, []);
+  }, [selectedVoice]);
 
   const speak = () => {
     if (!window.speechSynthesis) {
@@ -30,15 +39,30 @@ export default function App() {
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
-    utterance.rate = 1;
-    utterance.pitch = 1;
+    
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+    
+    utterance.rate = rate;
+    utterance.pitch = pitch;
     
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     
     window.speechSynthesis.speak(utterance);
+  };
+
+  // Helper function to categorize voices
+  const getVoiceGender = (voiceName) => {
+    const name = voiceName.toLowerCase();
+    const femaleNames = ['female', 'woman', 'samantha', 'victoria', 'alex', 'karen', 'moira', 'tessa', 'fiona', 'kate', 'susan'];
+    const maleNames = ['male', 'man', 'daniel', 'thomas', 'oliver', 'fred', 'albert', 'ralph', 'bruce'];
+    
+    if (femaleNames.some(n => name.includes(n))) return 'Female';
+    if (maleNames.some(n => name.includes(n))) return 'Male';
+    return 'Unknown';
   };
 
   return (
@@ -64,6 +88,62 @@ export default function App() {
 
         {/* Main Card */}
         <div className="bg-white/10 backdrop-blur-lg rounded-xl shadow-xl p-6 border border-white/20">
+          {/* Voice Selection */}
+          <div className="mb-6">
+            <label className="block text-white text-sm font-medium mb-3">
+              Voice Selection
+            </label>
+            <select
+              value={selectedVoice?.name || ''}
+              onChange={(e) => {
+                const voice = voices.find(v => v.name === e.target.value);
+                setSelectedVoice(voice);
+              }}
+              className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent text-white text-sm"
+            >
+              {voices.map((voice, index) => (
+                <option key={index} value={voice.name} className="bg-gray-800 text-white">
+                  {voice.name} ({getVoiceGender(voice.name)}) - {voice.lang}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Voice Controls */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            {/* Rate Control */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">
+                Speed: {rate.toFixed(1)}x
+              </label>
+              <input
+                type="range"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value={rate}
+                onChange={(e) => setRate(parseFloat(e.target.value))}
+                className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+              />
+            </div>
+
+            {/* Pitch Control */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">
+                Pitch: {pitch.toFixed(1)}
+              </label>
+              <input
+                type="range"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value={pitch}
+                onChange={(e) => setPitch(parseFloat(e.target.value))}
+                className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+              />
+            </div>
+          </div>
+
           {/* Text Area */}
           <div className="mb-6">
             <textarea
@@ -123,10 +203,43 @@ export default function App() {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-gray-400 text-xs">
-            Powered by Web Speech API
+            Powered by Web Speech API • {voices.length} voices available
           </p>
         </div>
       </div>
+      
+      {/* Custom CSS for sliders */}
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          height: 16px;
+          width: 16px;
+          border-radius: 50%;
+          background: #a855f7;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .slider::-moz-range-thumb {
+          height: 16px;
+          width: 16px;
+          border-radius: 50%;
+          background: #a855f7;
+          cursor: pointer;
+          border: none;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .slider::-webkit-slider-track {
+          background: rgba(255,255,255,0.2);
+          border-radius: 5px;
+        }
+        
+        .slider::-moz-range-track {
+          background: rgba(255,255,255,0.2);
+          border-radius: 5px;
+        }
+      `}</style>
     </div>
   );
 }
