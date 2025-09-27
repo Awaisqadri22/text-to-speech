@@ -5,6 +5,8 @@ export default function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(null);
+  const [selectedAccent, setSelectedAccent] = useState('All');
+  const [selectedGender, setSelectedGender] = useState('All');
   const [rate, setRate] = useState(1);
   const [pitch, setPitch] = useState(1);
 
@@ -65,6 +67,60 @@ export default function App() {
     return 'Unknown';
   };
 
+  // Helper function to get accent/region from language code
+  const getAccent = (lang) => {
+    const accents = {
+      'en-US': 'American',
+      'en-GB': 'British',
+      'en-AU': 'Australian',
+      'en-CA': 'Canadian',
+      'en-IN': 'Indian',
+      'en-IE': 'Irish',
+      'en-ZA': 'South African',
+      'es-ES': 'Spanish',
+      'es-MX': 'Mexican',
+      'fr-FR': 'French',
+      'fr-CA': 'Canadian French',
+      'de-DE': 'German',
+      'it-IT': 'Italian',
+      'pt-BR': 'Brazilian',
+      'ja-JP': 'Japanese',
+      'ko-KR': 'Korean',
+      'zh-CN': 'Chinese (Mandarin)',
+      'ru-RU': 'Russian',
+      'ar-SA': 'Arabic',
+      'hi-IN': 'Hindi',
+      'nl-NL': 'Dutch',
+      'sv-SE': 'Swedish',
+      'no-NO': 'Norwegian',
+      'da-DK': 'Danish',
+      'fi-FI': 'Finnish'
+    };
+    return accents[lang] || lang;
+  };
+
+  // Group voices by accent/language
+  const groupedVoices = voices.reduce((acc, voice) => {
+    const accent = getAccent(voice.lang);
+    if (!acc[accent]) acc[accent] = [];
+    acc[accent].push(voice);
+    return acc;
+  }, {});
+
+  // Get unique accents for filter
+  const availableAccents = Object.keys(groupedVoices).sort();
+
+  // Filter voices based on selected criteria
+  const filteredVoices = voices.filter(voice => {
+    const accent = getAccent(voice.lang);
+    const gender = getVoiceGender(voice.name);
+    
+    const accentMatch = selectedAccent === 'All' || accent === selectedAccent;
+    const genderMatch = selectedGender === 'All' || gender === selectedGender;
+    
+    return accentMatch && genderMatch;
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4">
       {/* Animated background */}
@@ -88,10 +144,57 @@ export default function App() {
 
         {/* Main Card */}
         <div className="bg-white/10 backdrop-blur-lg rounded-xl shadow-xl p-6 border border-white/20">
+          {/* Accent and Gender Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {/* Accent Filter */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">
+                🌍 Accent/Language
+              </label>
+              <select
+                value={selectedAccent}
+                onChange={(e) => {
+                  setSelectedAccent(e.target.value);
+                  // Reset voice selection when filter changes
+                  setSelectedVoice(null);
+                }}
+                className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent text-white text-sm"
+              >
+                <option value="All" className="bg-gray-800 text-white">All Accents</option>
+                {availableAccents.map((accent) => (
+                  <option key={accent} value={accent} className="bg-gray-800 text-white">
+                    {accent} ({groupedVoices[accent].length})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Gender Filter */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">
+                👤 Gender
+              </label>
+              <select
+                value={selectedGender}
+                onChange={(e) => {
+                  setSelectedGender(e.target.value);
+                  // Reset voice selection when filter changes
+                  setSelectedVoice(null);
+                }}
+                className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent text-white text-sm"
+              >
+                <option value="All" className="bg-gray-800 text-white">All Genders</option>
+                <option value="Female" className="bg-gray-800 text-white">Female</option>
+                <option value="Male" className="bg-gray-800 text-white">Male</option>
+                <option value="Unknown" className="bg-gray-800 text-white">Unknown</option>
+              </select>
+            </div>
+          </div>
+
           {/* Voice Selection */}
           <div className="mb-6">
             <label className="block text-white text-sm font-medium mb-3">
-              Voice Selection
+              🎤 Voice Selection ({filteredVoices.length} available)
             </label>
             <select
               value={selectedVoice?.name || ''}
@@ -100,13 +203,48 @@ export default function App() {
                 setSelectedVoice(voice);
               }}
               className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent text-white text-sm"
+              disabled={filteredVoices.length === 0}
             >
-              {voices.map((voice, index) => (
-                <option key={index} value={voice.name} className="bg-gray-800 text-white">
-                  {voice.name} ({getVoiceGender(voice.name)}) - {voice.lang}
-                </option>
-              ))}
+              {filteredVoices.length === 0 ? (
+                <option className="bg-gray-800 text-white">No voices match your criteria</option>
+              ) : (
+                <>
+                  <option value="" className="bg-gray-800 text-white">Select a voice...</option>
+                  {filteredVoices.map((voice, index) => (
+                    <option key={index} value={voice.name} className="bg-gray-800 text-white">
+                      {voice.name} ({getVoiceGender(voice.name)}) - {getAccent(voice.lang)}
+                    </option>
+                  ))}
+                </>
+              )}
             </select>
+          </div>
+
+          {/* Quick Accent Shortcuts */}
+          <div className="mb-6">
+            <label className="block text-white text-sm font-medium mb-3">
+              🌟 Popular Accents
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {['American', 'British', 'Australian', 'Indian', 'Irish'].map((accent) => (
+                groupedVoices[accent] && (
+                  <button
+                    key={accent}
+                    onClick={() => {
+                      setSelectedAccent(accent);
+                      setSelectedVoice(null);
+                    }}
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                      selectedAccent === accent
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white'
+                    }`}
+                  >
+                    {accent} ({groupedVoices[accent].length})
+                  </button>
+                )
+              ))}
+            </div>
           </div>
 
           {/* Voice Controls */}
@@ -169,11 +307,11 @@ export default function App() {
           <div className="flex gap-3">
             <button
               onClick={speak}
-              disabled={!text.trim()}
+              disabled={!text.trim() || !selectedVoice}
               className={`flex-1 py-3 px-4 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
                 isSpeaking
                   ? "bg-red-500 hover:bg-red-600 text-white"
-                  : text.trim()
+                  : text.trim() && selectedVoice
                   ? "bg-purple-600 hover:bg-purple-700 text-white"
                   : "bg-gray-600 text-gray-400 cursor-not-allowed"
               }`}
@@ -203,8 +341,13 @@ export default function App() {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-gray-400 text-xs">
-            Powered by Web Speech API • {voices.length} voices available
+            Powered by Web Speech API • {voices.length} voices • {availableAccents.length} accents
           </p>
+          {selectedVoice && (
+            <p className="text-purple-300 text-xs mt-1">
+              Selected: {selectedVoice.name} ({getAccent(selectedVoice.lang)})
+            </p>
+          )}
         </div>
       </div>
       
