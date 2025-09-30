@@ -59,12 +59,25 @@ export default function App() {
   // Helper function to categorize voices
   const getVoiceGender = (voiceName) => {
     const name = voiceName.toLowerCase();
-    const femaleNames = ['female', 'woman', 'samantha', 'victoria', 'alex', 'karen', 'moira', 'tessa', 'fiona', 'kate', 'susan'];
-    const maleNames = ['male', 'man', 'daniel', 'thomas', 'oliver', 'fred', 'albert', 'ralph', 'bruce'];
     
-    if (femaleNames.some(n => name.includes(n))) return 'Female';
-    if (maleNames.some(n => name.includes(n))) return 'Male';
-    return 'Unknown';
+    // More comprehensive female voice detection
+    const femaleIndicators = [
+      'female', 'woman', 'girl', 'samantha', 'victoria', 'alex', 'karen', 'moira', 
+      'tessa', 'fiona', 'kate', 'susan', 'allison', 'ava', 'nicky', 'paulina',
+      'zira', 'julie', 'amelie', 'luciana', 'joana', 'catherine', 'carmit',
+      'alice', 'emma', 'salli', 'kimberly', 'ivy', 'joanna', 'kendra', 'nicole'
+    ];
+    
+    // More comprehensive male voice detection
+    const maleIndicators = [
+      'male', 'man', 'boy', 'daniel', 'thomas', 'oliver', 'fred', 'albert', 
+      'ralph', 'bruce', 'david', 'mark', 'nathan', 'lee', 'john', 'aaron',
+      'jorge', 'diego', 'rishi', 'russell', 'kevin', 'matthew', 'joey', 'justin'
+    ];
+    
+    if (femaleIndicators.some(n => name.includes(n))) return 'Female';
+    if (maleIndicators.some(n => name.includes(n))) return 'Male';
+    return 'Neutral';
   };
 
   // Helper function to get accent/region from language code
@@ -186,7 +199,7 @@ export default function App() {
                 <option value="All" className="bg-gray-800 text-white">All Genders</option>
                 <option value="Female" className="bg-gray-800 text-white">Female</option>
                 <option value="Male" className="bg-gray-800 text-white">Male</option>
-                <option value="Unknown" className="bg-gray-800 text-white">Unknown</option>
+                <option value="Neutral" className="bg-gray-800 text-white">Neutral</option>
               </select>
             </div>
           </div>
@@ -196,6 +209,16 @@ export default function App() {
             <label className="block text-white text-sm font-medium mb-3">
               🎤 Voice Selection ({filteredVoices.length} available)
             </label>
+            
+            {/* Show helpful message if no voices match */}
+            {filteredVoices.length === 0 && (
+              <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-lg p-3 mb-3">
+                <p className="text-yellow-200 text-xs">
+                  ⚠️ No voices match your filters. Try selecting "All Accents" or "All Genders" to see more options.
+                </p>
+              </div>
+            )}
+            
             <select
               value={selectedVoice?.name || ''}
               onChange={(e) => {
@@ -206,18 +229,28 @@ export default function App() {
               disabled={filteredVoices.length === 0}
             >
               {filteredVoices.length === 0 ? (
-                <option className="bg-gray-800 text-white">No voices match your criteria</option>
+                <option className="bg-gray-800 text-white">No voices available - adjust your filters</option>
               ) : (
                 <>
                   <option value="" className="bg-gray-800 text-white">Select a voice...</option>
                   {filteredVoices.map((voice, index) => (
                     <option key={index} value={voice.name} className="bg-gray-800 text-white">
-                      {voice.name} ({getVoiceGender(voice.name)}) - {getAccent(voice.lang)}
+                      {voice.name} • {getVoiceGender(voice.name)} • {getAccent(voice.lang)}
                     </option>
                   ))}
                 </>
               )}
             </select>
+            
+            {/* Voice info tip */}
+            {selectedVoice && (
+              <div className="mt-3 bg-blue-500/20 border border-blue-500/40 rounded-lg p-3">
+                <p className="text-blue-200 text-xs">
+                  💡 <strong>Tip:</strong> Each browser has different voices. Chrome typically offers the most variety. 
+                  If voices sound similar, try adjusting the Speed and Pitch sliders below for more variation.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Quick Accent Shortcuts */}
@@ -252,7 +285,7 @@ export default function App() {
             {/* Rate Control */}
             <div>
               <label className="block text-white text-sm font-medium mb-2">
-                Speed: {rate.toFixed(1)}x
+                ⚡ Speed: {rate.toFixed(1)}x
               </label>
               <input
                 type="range"
@@ -263,12 +296,17 @@ export default function App() {
                 onChange={(e) => setRate(parseFloat(e.target.value))}
                 className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
               />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>Slow</span>
+                <span>Normal</span>
+                <span>Fast</span>
+              </div>
             </div>
 
             {/* Pitch Control */}
             <div>
               <label className="block text-white text-sm font-medium mb-2">
-                Pitch: {pitch.toFixed(1)}
+                🎵 Pitch: {pitch.toFixed(1)}
               </label>
               <input
                 type="range"
@@ -279,6 +317,50 @@ export default function App() {
                 onChange={(e) => setPitch(parseFloat(e.target.value))}
                 className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
               />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>Low</span>
+                <span>Normal</span>
+                <span>High</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Preset voice effects */}
+          <div className="mb-6">
+            <label className="block text-white text-sm font-medium mb-3">
+              ✨ Quick Voice Effects
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => { setRate(1); setPitch(1); }}
+                className="px-3 py-2 rounded-lg text-xs font-medium bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white transition-all duration-200"
+              >
+                🔄 Reset
+              </button>
+              <button
+                onClick={() => { setRate(0.7); setPitch(0.8); }}
+                className="px-3 py-2 rounded-lg text-xs font-medium bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white transition-all duration-200"
+              >
+                🎙️ Deep Voice
+              </button>
+              <button
+                onClick={() => { setRate(1.2); setPitch(1.4); }}
+                className="px-3 py-2 rounded-lg text-xs font-medium bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white transition-all duration-200"
+              >
+                🐿️ Chipmunk
+              </button>
+              <button
+                onClick={() => { setRate(0.8); setPitch(1.2); }}
+                className="px-3 py-2 rounded-lg text-xs font-medium bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white transition-all duration-200"
+              >
+                👶 Young
+              </button>
+              <button
+                onClick={() => { setRate(1.5); setPitch(1); }}
+                className="px-3 py-2 rounded-lg text-xs font-medium bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white transition-all duration-200"
+              >
+                ⏩ Fast Read
+              </button>
             </div>
           </div>
 
